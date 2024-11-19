@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Canvas with Sockets</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+        }
+        #nameInput {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            z-index: 1000;
+        }
+        canvas {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+<input id="nameInput" type="text" placeholder="Enter your name" />
+<canvas id="canvas"></canvas>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+    const socket = io();
+
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    const nameInput = document.getElementById("nameInput");
+    let userName = "";
+    let userColor = "#" + Math.floor(Math.random()*16777215).toString(16); // Color aleatorio
+
+    nameInput.addEventListener("change", () => {
+        userName = nameInput.value;
+        nameInput.style.display = "none"; // Oculta el input después de escribir el nombre
+    });
+
+    // Dibuja la bolita y el nombre
+    function drawCircle(x, y, color, name) {
+        // Limpiar el canvas antes de dibujar el nuevo círculo
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Dibuja el círculo
+        ctx.beginPath();
+        ctx.arc(x, y, 20, 0, Math.PI * 2);
+        ctx.fillStyle = color;
+        ctx.fill();
+        ctx.closePath();
+
+        // Dibuja el nombre sobre el círculo
+        ctx.fillStyle = "black";
+        ctx.font = "16px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText(name, x, y - 30);
+    }
+
+    // Evento para mover el mouse y enviar los datos al servidor
+    canvas.addEventListener("mousemove", (e) => {
+        if (userName) {
+            const data = {
+                x: e.clientX,
+                y: e.clientY,
+                color: userColor,
+                name: userName
+            };
+            drawCircle(data.x, data.y, data.color, data.name);
+            socket.emit("updateCursor", data);
+        }
+    });
+
+    // Recibe las posiciones de otros usuarios
+    socket.on("updateCursor", (data) => {
+        drawCircle(data.x, data.y, data.color, data.name);
+    });
+</script>
+</body>
+</html>
